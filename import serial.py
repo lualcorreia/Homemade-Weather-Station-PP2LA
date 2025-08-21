@@ -1,0 +1,71 @@
+import serial
+import time
+import requests
+
+# Configuração serial do Arduino
+SERIAL_PORT = "/dev/ttyUSB0"   # ajustar conforme a porta do Arduino
+BAUD_RATE = 9600
+READ_TIMEOUT = 5
+
+# ThingSpeak
+API_KEY = "API KEY"
+THINGSPEAK_URL = "https://api.thingspeak.com/update"
+
+# Nomes dos campos para debug
+CAMPOS = [
+    "Temperatura IN",
+    "Temperatura OUT",
+    "Pressão",
+    "Umidade",
+    "Ponto de Orvalho",
+    "CAPE",
+    "Tendência de Pressão"
+]
+
+def ler_ultima_linha_serial():
+    ultima_linha = None
+    with serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=READ_TIMEOUT) as ser:
+        # lê várias linhas e guarda sempre a última
+        for _ in range(10):
+            linha = ser.readline().decode("utf-8").strip()
+            if linha:
+                ultima_linha = linha
+    
+    if ultima_linha:
+        try:
+            dados = [float(x) for x in ultima_linha.split(",")]
+            return [round(x, 2) for x in dados]
+        except Exception as e:
+            print("Erro ao converter linha:", e)
+            return None
+    else:
+        return None
+
+def enviar_thingspeak(valores):
+    payload = {
+        "api_key": API_KEY,
+        "field1": "{:.2f}".format(valores[0]),
+        "field2": "{:.2f}".format(valores[1]),
+        "field3": "{:.2f}".format(valores[2]),
+        "field4": "{:.2f}".format(valores[3]),
+        "field5": "{:.2f}".format(valores[4]),
+        "field6": "{:.2f}".format(valores[5]),
+        "field7": "{:.2f}".format(valores[6]),
+    }
+
+    r = requests.get(THINGSPEAK_URL, params=payload)
+    print("Resposta ThingSpeak:", r.text)
+
+if __name__ == "__main__":
+    while True:
+        print("Abrindo serial e lendo última linha...")
+        valores = ler_ultima_linha_serial()
+        if valores and len(valores) >= 7:
+            print("Última linha capturada:")
+            for nome, valor in zip(CAMPOS, valores):
+                print(f"  {nome}: {valor}")
+            enviar_thingspeak(valores)
+        else:
+            print("Não foi possível ler dados válidos.")
+        
+        time.sleep(80)  # espera 80 segundos até a próxima rodada
