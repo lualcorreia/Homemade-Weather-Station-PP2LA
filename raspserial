@@ -8,7 +8,7 @@ BAUD_RATE = 9600
 READ_TIMEOUT = 5
 
 # ThingSpeak
-API_KEY = "L4CWN3HURSBLJVIN"
+API_KEY = "API KEY"
 THINGSPEAK_URL = "https://api.thingspeak.com/update"
 
 # Nomes dos campos para debug
